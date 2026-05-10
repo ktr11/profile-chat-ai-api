@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import chat
+from app.routers import chat, session
 
 app = FastAPI(
     title="profile-chat-ai-api",
@@ -12,6 +12,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.include_router(session.router)
 app.include_router(chat.router)
 
 
