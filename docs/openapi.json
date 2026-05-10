@@ -12,7 +12,7 @@
           "chat"
         ],
         "summary": "チャットメッセージを送信する",
-        "description": "ユーザーのメッセージをAIに送信し、返答と残り送信可能回数を返す。\n\n**トライアルセッション管理:**\n- リクエストに `trial_uuid` クッキーが含まれていない場合、新規UUIDを発行して `Set-Cookie` ヘッダーで返す。\n- 発行されたUUIDはDynamoDBで1日あたりのチャット回数管理に使用される（JST基準でリセット）。\n\n**チャット制限:**\n- 1日あたりの上限に達した場合は `403 Forbidden` を返す。",
+        "description": "ユーザーのメッセージをAIに送信し、返答と送信回数情報を返す。\n\n**トライアルセッション管理:**\n- リクエストに `trial_uuid` クッキーが含まれていない場合、新規UUIDを発行して `Set-Cookie` ヘッダーで返す。\n- 発行されたUUIDはDynamoDBで1日あたりのチャット回数管理に使用される（JST基準でリセット）。\n\n**チャット制限:**\n- 1日あたりの上限に達した場合は `403 Forbidden` を返す。",
         "operationId": "post_chat_chat_post",
         "parameters": [
           {
@@ -46,7 +46,7 @@
         },
         "responses": {
           "200": {
-            "description": "AIの返答と残り送信可能回数",
+            "description": "AIの返答と送信回数情報",
             "content": {
               "application/json": {
                 "schema": {
@@ -54,7 +54,8 @@
                 },
                 "example": {
                   "reply": "はじめまして！私はプロフィールチャットAIです。何でも聞いてください。",
-                  "remaining": 4
+                  "chat_count": 3,
+                  "chat_limit": 5
                 }
               }
             }
@@ -137,19 +138,28 @@
               "はじめまして！私はプロフィールチャットAIです。"
             ]
           },
-          "remaining": {
+          "chat_count": {
             "type": "integer",
-            "title": "Remaining",
-            "description": "本日の残り送信可能回数",
+            "title": "Chat Count",
+            "description": "本日の送信回数（今回のメッセージを含む）",
             "examples": [
-              4
+              3
+            ]
+          },
+          "chat_limit": {
+            "type": "integer",
+            "title": "Chat Limit",
+            "description": "1日の送信上限回数",
+            "examples": [
+              5
             ]
           }
         },
         "type": "object",
         "required": [
           "reply",
-          "remaining"
+          "chat_count",
+          "chat_limit"
         ],
         "title": "ChatResponse"
       }
