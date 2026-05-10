@@ -1,0 +1,158 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "profile-chat-ai-api",
+    "description": "プロフィールチャットAIのバックエンドAPI。\n\nトライアルユーザーがAIとチャットするためのエンドポイントを提供する。\nセッション管理にはHTTPOnly クッキー（`trial_uuid`）を使用し、チャット回数の制限はDynamoDBで管理される（JST基準で1日ごとにリセット）。",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/chat": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "チャットメッセージを送信する",
+        "description": "ユーザーのメッセージをAIに送信し、返答と残り送信可能回数を返す。\n\n**トライアルセッション管理:**\n- リクエストに `trial_uuid` クッキーが含まれていない場合、新規UUIDを発行して `Set-Cookie` ヘッダーで返す。\n- 発行されたUUIDはDynamoDBで1日あたりのチャット回数管理に使用される（JST基準でリセット）。\n\n**チャット制限:**\n- 1日あたりの上限に達した場合は `403 Forbidden` を返す。",
+        "operationId": "post_chat_chat_post",
+        "parameters": [
+          {
+            "name": "trial_uuid",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "トライアルユーザーを識別するUUID。未設定の場合は自動発行される。",
+              "title": "Trial Uuid"
+            },
+            "description": "トライアルユーザーを識別するUUID。未設定の場合は自動発行される。"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AIの返答と残り送信可能回数",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                },
+                "example": {
+                  "reply": "はじめまして！私はプロフィールチャットAIです。何でも聞いてください。",
+                  "remaining": 4
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "本日のチャット上限に達した",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "本日のチャット上限に達しました。"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "バリデーションエラー（リクエストボディの形式が不正）",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "type": "missing",
+                      "loc": [
+                        "body",
+                        "message"
+                      ],
+                      "msg": "Field required"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "ユーザーが送信するメッセージ",
+            "examples": [
+              "自己紹介してください"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "ChatRequest"
+      },
+      "ChatResponse": {
+        "properties": {
+          "reply": {
+            "type": "string",
+            "title": "Reply",
+            "description": "AIからの返答テキスト",
+            "examples": [
+              "はじめまして！私はプロフィールチャットAIです。"
+            ]
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining",
+            "description": "本日の残り送信可能回数",
+            "examples": [
+              4
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "reply",
+          "remaining"
+        ],
+        "title": "ChatResponse"
+      }
+    }
+  }
+}
