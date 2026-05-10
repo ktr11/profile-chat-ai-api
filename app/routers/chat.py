@@ -24,10 +24,15 @@ class ChatResponse(BaseModel):
         description="AIからの返答テキスト",
         examples=["はじめまして！私はプロフィールチャットAIです。"],
     )
-    remaining: int = Field(
+    chat_count: int = Field(
         ...,
-        description="本日の残り送信可能回数",
-        examples=[4],
+        description="本日の送信回数（今回のメッセージを含む）",
+        examples=[3],
+    )
+    chat_limit: int = Field(
+        ...,
+        description="1日の送信上限回数",
+        examples=[5],
     )
 
 
@@ -50,7 +55,7 @@ def _get_or_create_uuid(response: Response, trial_uuid: str | None) -> str:
     response_model=ChatResponse,
     summary="チャットメッセージを送信する",
     description=(
-        "ユーザーのメッセージをAIに送信し、返答と残り送信可能回数を返す。\n\n"
+        "ユーザーのメッセージをAIに送信し、返答と送信回数情報を返す。\n\n"
         "**トライアルセッション管理:**\n"
         "- リクエストに `trial_uuid` クッキーが含まれていない場合、新規UUIDを発行して `Set-Cookie` ヘッダーで返す。\n"
         "- 発行されたUUIDはDynamoDBで1日あたりのチャット回数管理に使用される（JST基準でリセット）。\n\n"
@@ -59,12 +64,13 @@ def _get_or_create_uuid(response: Response, trial_uuid: str | None) -> str:
     ),
     responses={
         200: {
-            "description": "AIの返答と残り送信可能回数",
+            "description": "AIの返答と送信回数情報",
             "content": {
                 "application/json": {
                     "example": {
                         "reply": "はじめまして！私はプロフィールチャットAIです。何でも聞いてください。",
-                        "remaining": 4,
+                        "chat_count": 3,
+                        "chat_limit": 5,
                     }
                 }
             },
@@ -116,6 +122,5 @@ def post_chat(
     chat_history.save_message(uid, "assistant", reply)
 
     count = chat_count.increment_chat_count(uid)
-    remaining = max(0, settings.trial_chat_limit - count)
 
-    return ChatResponse(reply=reply, remaining=remaining)
+    return ChatResponse(reply=reply, chat_count=count, chat_limit=settings.trial_chat_limit)
