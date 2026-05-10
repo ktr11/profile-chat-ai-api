@@ -6,14 +6,14 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/chat": {
+    "/session": {
       "post": {
         "tags": [
-          "chat"
+          "session"
         ],
-        "summary": "チャットメッセージを送信する",
-        "description": "ユーザーのメッセージをAIに送信し、返答と送信回数情報を返す。\n\n**トライアルセッション管理:**\n- リクエストに `trial_uuid` クッキーが含まれていない場合、新規UUIDを発行して `Set-Cookie` ヘッダーで返す。\n- 発行されたUUIDはDynamoDBで1日あたりのチャット回数管理に使用される（JST基準でリセット）。\n\n**チャット制限:**\n- 1日あたりの上限に達した場合は `403 Forbidden` を返す。",
-        "operationId": "post_chat_chat_post",
+        "summary": "チャットセッションを開始する",
+        "description": "チャット利用開始時に呼び出す。`trial_uuid` クッキーを発行し、本日の送信回数と上限を返す。\n\n既にクッキーが存在する場合はそのまま使用し、現在のカウントを返す。",
+        "operationId": "post_session_session_post",
         "parameters": [
           {
             "name": "trial_uuid",
@@ -32,6 +32,62 @@
               "title": "Trial Uuid"
             },
             "description": "トライアルユーザーを識別するUUID。未設定の場合は自動発行される。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "セッション情報（送信回数と上限）",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                },
+                "example": {
+                  "chat_count": 0,
+                  "chat_limit": 5
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat": {
+      "post": {
+        "tags": [
+          "chat"
+        ],
+        "summary": "チャットメッセージを送信する",
+        "description": "ユーザーのメッセージをAIに送信し、返答と送信回数情報を返す。\n\n**前提条件:**\n- 事前に `POST /session` を呼び出して `trial_uuid` クッキーを取得しておく必要がある。\n- クッキーが存在しない場合は `401 Unauthorized` を返す。\n\n**チャット制限:**\n- 1日あたりの上限に達した場合は `403 Forbidden` を返す。",
+        "operationId": "post_chat_chat_post",
+        "parameters": [
+          {
+            "name": "trial_uuid",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "トライアルユーザーを識別するUUID。POST /session で発行される。",
+              "title": "Trial Uuid"
+            },
+            "description": "トライアルユーザーを識別するUUID。POST /session で発行される。"
           }
         ],
         "requestBody": {
@@ -56,6 +112,16 @@
                   "reply": "はじめまして！私はプロフィールチャットAIです。何でも聞いてください。",
                   "chat_count": 3,
                   "chat_limit": 5
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "セッションが開始されていない（trial_uuid クッキーなし）",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "セッションが開始されていません。"
                 }
               }
             }
@@ -162,6 +228,85 @@
           "chat_limit"
         ],
         "title": "ChatResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "SessionResponse": {
+        "properties": {
+          "chat_count": {
+            "type": "integer",
+            "title": "Chat Count",
+            "description": "本日の送信回数",
+            "examples": [
+              0
+            ]
+          },
+          "chat_limit": {
+            "type": "integer",
+            "title": "Chat Limit",
+            "description": "1日の送信上限回数",
+            "examples": [
+              5
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "chat_count",
+          "chat_limit"
+        ],
+        "title": "SessionResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
       }
     }
   }
