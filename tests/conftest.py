@@ -1,5 +1,6 @@
 import boto3
 import pytest
+from fastapi.testclient import TestClient
 from moto import mock_aws
 from unittest.mock import patch
 
@@ -54,3 +55,11 @@ def aws_mock():
             patch("app.services.chat_history.chat_history_table", history_table),
         ):
             yield dynamodb
+
+
+@pytest.fixture(scope="function")
+def client(aws_mock):
+    """DynamoDBモック済みのFastAPI TestClientを返す。"""
+    from app.main import app
+    with TestClient(app, raise_server_exceptions=True) as c:
+        yield c
