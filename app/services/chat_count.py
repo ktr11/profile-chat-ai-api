@@ -1,5 +1,4 @@
 from datetime import datetime, timezone, timedelta
-from boto3.dynamodb.conditions import Key
 from app.dynamodb import chat_count_table
 from app.config import settings
 
