@@ -6,6 +6,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      dynamodb-local:
+        image: amazon/dynamodb-local:latest
+        ports:
+          - 8000:8000
     steps:
       - uses: actions/checkout@v4
 
@@ -19,8 +24,8 @@ jobs:
       - name: Lint
         run: uv run ruff check .
 
-      - name: Run tests
-        run: uv run pytest tests/ -v
+      - name: Run unit tests
+        run: uv run pytest tests/services tests/routers -v
         env:
           CHAT_COUNT_TABLE_NAME: dev-user_chat_count
           CHAT_HISTORY_TABLE_NAME: dev-user_chat_history
@@ -29,3 +34,15 @@ jobs:
           AWS_DEFAULT_REGION: ap-northeast-1
           AWS_ACCESS_KEY_ID: testing
           AWS_SECRET_ACCESS_KEY: testing
+
+      - name: Run integration tests
+        run: uv run pytest tests/integration -v
+        env:
+          CHAT_COUNT_TABLE_NAME: dev-user_chat_count
+          CHAT_HISTORY_TABLE_NAME: dev-user_chat_history
+          TRIAL_CHAT_LIMIT: "5"
+          CHAT_HISTORY_LIMIT: "10"
+          AWS_DEFAULT_REGION: ap-northeast-1
+          AWS_ACCESS_KEY_ID: testing
+          AWS_SECRET_ACCESS_KEY: testing
+          DYNAMODB_ENDPOINT_URL: http://localhost:8000
