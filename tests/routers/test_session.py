@@ -1,6 +1,3 @@
-import pytest
-
-
 class TestPostSession:
     def test_新規ユーザーにcookieが発行される(self, client):
         """cookie未設定のリクエストにtrial_uuidクッキーがセットされる。"""
