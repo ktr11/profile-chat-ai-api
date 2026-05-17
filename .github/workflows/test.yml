@@ -1,0 +1,28 @@
+name: test
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run tests
+        run: uv run pytest tests/ -v
+        env:
+          CHAT_COUNT_TABLE_NAME: dev-user_chat_count
+          CHAT_HISTORY_TABLE_NAME: dev-user_chat_history
+          TRIAL_CHAT_LIMIT: "5"
+          CHAT_HISTORY_LIMIT: "10"
+          AWS_DEFAULT_REGION: ap-northeast-1
+          AWS_ACCESS_KEY_ID: testing
+          AWS_SECRET_ACCESS_KEY: testing
