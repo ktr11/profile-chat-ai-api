@@ -59,3 +59,10 @@ uv run uvicorn app.main:app --reload
 ```bash
 uv run pytest
 ```
+
+## ドキュメント
+
+| ドキュメント | 内容 |
+|------------|------|
+| [OpenAPI 仕様](./docs/openapi.json) | API エンドポイント定義 |
+| [システム全体構成](https://github.com/ktr11/profile-chat-ai-docs/blob/main/docs/architecture/overall.md) | プロジェクト横断のアーキテクチャ図 |
